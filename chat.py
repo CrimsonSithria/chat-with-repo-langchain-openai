@@ -1,74 +1,90 @@
 import os
+import numpy as np
+import faiss
 from dotenv import load_dotenv
-from langchain.vectorstores import DeepLake
-from langchain.chat_models import ChatOpenAI
-from langchain.chains import ConversationalRetrievalChain
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.callbacks import get_openai_callback
+from openai import OpenAI
+from typing import List, Dict
+from ingest import CodeIngester
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
-# Set environment variables
-os.environ['OPENAI_API_KEY'] = os.getenv('OPENAI_API_KEY')
-os.environ['ACTIVELOOP_TOKEN'] = os.getenv('ACTIVELOOP_TOKEN')
-language_model = os.getenv('LANGUAGE_MODEL')
+# Initialize OpenAI client
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Set DeepLake dataset path
-DEEPLAKE_PATH = os.getenv('DATASET_PATH')
-
-# Initialize OpenAI embeddings and disallow special tokens
-EMBEDDINGS = OpenAIEmbeddings(disallowed_special=())
-
-# Initialize DeepLake vector store with OpenAI embeddings
-deep_lake = DeepLake(
-    dataset_path=DEEPLAKE_PATH,
-    read_only=True,
-    embedding_function=EMBEDDINGS,
-)
-
-# Initialize retriever and set search parameters
-retriever = deep_lake.as_retriever()
-retriever.search_kwargs.update({
-    'distance_metric': 'cos',
-    'fetch_k': 100,
-    'maximal_marginal_relevance': True,
-    'k': 10,
-})
-
-# Initialize ChatOpenAI model
-model = ChatOpenAI(model_name=language_model, temperature=0.2) # gpt-3.5-turbo by default. Use gpt-4 for better and more accurate responses 
-
-# Initialize ConversationalRetrievalChain
-qa = ConversationalRetrievalChain.from_llm(model, retriever=retriever)
-
-# Initialize chat history
-chat_history = []
-
-def get_user_input():
-    """Get user input and handle 'quit' command."""
-    question = input("\nPlease enter your question (or 'quit' to stop): ")
-    if question.lower() == 'quit':
-        return None
-    return question
-
-def print_answer(question, answer):
-    """Format and print question and answer."""
-    print(f"\nQuestion: {question}\nAnswer: {answer}\n")
-
-def main():
-    """Main program loop."""
-    while True:
-        question = get_user_input()
-        if question is None:  # User has quit
-            break
-
-        # Display token usage and approximate costs
-        with get_openai_callback() as tokens_usage:
-            result = qa({"question": question, "chat_history": chat_history})
-            chat_history.append((question, result['answer']))
-            print_answer(question, result['answer'])
-            print(tokens_usage)
+class CodeChat:
+    def __init__(self, ingester: CodeIngester = None):
+        self.ingester = ingester or CodeIngester()
+        
+    def search_similar(self, query: str, k: int = 3) -> List[Dict]:
+        """Search for code chunks similar to the query."""
+        query_embedding = self.ingester.get_embedding(query)
+        D, I = self.ingester.index.search(query_embedding.reshape(1, -1), k)
+        
+        results = []
+        for i, idx in enumerate(I[0]):
+            if idx < len(self.ingester.metadata):
+                result = self.ingester.metadata[idx].copy()
+                result['distance'] = float(D[0][i])
+                results.append(result)
+        return results
+    
+    def get_chat_response(self, query: str, context_chunks: List[Dict]) -> str:
+        """Get chat response using OpenAI."""
+        context = "\n\n".join(chunk["content"] for chunk in context_chunks)
+        
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "You are a helpful code assistant. Answer questions about the code based on the context provided."},
+                    {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}
+                ],
+                temperature=0.7,
+                max_tokens=1000
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return f"Error getting chat response: {e}"
+    
+    def chat_loop(self):
+        """Main chat loop."""
+        print("Welcome to Code Chat! Type 'exit' to quit, 'reload' to refresh codebase, or 'help' for commands.")
+        
+        while True:
+            query = input("\nYou: ").strip()
+            
+            if query.lower() == 'exit':
+                print("Goodbye!")
+                break
+            elif query.lower() == 'help':
+                print("\nAvailable commands:")
+                print("- exit: Quit the chat")
+                print("- reload: Reload the codebase")
+                print("- help: Show this help message")
+                continue
+            elif query.lower() == 'reload':
+                print("Reloading codebase...")
+                self.ingester = CodeIngester()
+                self.ingester.process_directory(".")
+                print("Reload complete!")
+                continue
+            
+            # Get similar code chunks
+            similar_chunks = self.search_similar(query)
+            
+            if not similar_chunks:
+                print("No relevant code found.")
+                continue
+            
+            # Get and print the response
+            response = self.get_chat_response(query, similar_chunks)
+            print("\nAssistant:", response)
 
 if __name__ == "__main__":
-    main()
+    # Initialize and run the chat
+    chat = CodeChat()
+    print("Processing codebase...")
+    chat.ingester.process_directory(".")
+    print("Processing complete! Starting chat...")
+    chat.chat_loop()
