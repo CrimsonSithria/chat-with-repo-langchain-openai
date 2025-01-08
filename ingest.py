@@ -5,6 +5,17 @@ import faiss
 from typing import List, Dict
 from openai import OpenAI
 from dotenv import load_dotenv
+import logging
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
+from smart_chunker import SmartChunker
 
 # Load environment variables
 load_dotenv()
@@ -13,6 +24,11 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class CodeIngester:
+    """
+    CodeIngester handles the processing and indexing of code files.
+    Uses SmartChunker for intelligent code chunking based on AST parsing.
+    """
+    
     def __init__(self, chunk_size: int = 1500):
         self.chunk_size = chunk_size
         self.dimension = 1536  # OpenAI embedding dimension
@@ -20,7 +36,8 @@ class CodeIngester:
         self.metadata: List[Dict] = []
         self.indices_dir = "indices"
         self.current_index_name = None
-        
+        self.smart_chunker = SmartChunker(max_tokens=chunk_size)
+            
     def get_index_path(self, index_name: str) -> tuple[str, str]:
         """Get paths for index and metadata files."""
         os.makedirs(self.indices_dir, exist_ok=True)
@@ -40,7 +57,7 @@ class CodeIngester:
         return indices
         
     def save_state(self, index_name: str):
-        """Save the FAISS index and metadata to disk."""
+        """Save FAISS index and metadata to disk."""
         try:
             index_file, metadata_file = self.get_index_path(index_name)
             faiss.write_index(self.index, index_file)
@@ -76,50 +93,65 @@ class CodeIngester:
             raise Exception(f"Failed to get embedding: {e}")
     
     def process_file(self, file_path: str):
-        """Process a single file and add its chunks to the index."""
+        """Process a single file using smart chunking."""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+            logger.info(f"Processing file: {file_path}")
+            # Use SmartChunker to get intelligent chunks
+            chunks = self.smart_chunker.chunk_file(file_path)
             
-            # Skip empty files
-            if not content.strip():
-                return
+            if not chunks:  # Fallback to basic chunking if smart chunking fails
+                logger.warning(f"Smart chunking failed for {file_path}, falling back to basic chunking")
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                if not content.strip():
+                    logger.warning(f"Skipping empty file: {file_path}")
+                    return
+                    
+                # Basic chunking as fallback
+                chunks = [{
+                    'content': content[i:i + self.chunk_size],
+                    'file_path': file_path,
+                    'type': 'text',
+                    'start_pos': i,
+                    'end_pos': min(i + self.chunk_size, len(content))
+                } for i in range(0, len(content), self.chunk_size)]
             
-            # Simple chunking by size
-            chunks = [content[i:i + self.chunk_size] 
-                     for i in range(0, len(content), self.chunk_size)]
-            
-            for chunk in chunks:
-                # Get embedding
-                embedding = self.get_embedding(chunk)
-                
-                # Add to FAISS index
+            # Process chunks and add to index
+            logger.info(f"Generated {len(chunks)} chunks for {file_path}")
+            for i, chunk in enumerate(chunks, 1):
+                logger.debug(f"Processing chunk {i}/{len(chunks)} for {file_path}")
+                embedding = self.get_embedding(chunk['content'])
                 self.index.add(embedding.reshape(1, -1))
-                
-                # Store metadata
-                self.metadata.append({
-                    "content": chunk,
-                    "file_path": file_path,
-                    "start_pos": chunks.index(chunk) * self.chunk_size,
-                    "end_pos": min((chunks.index(chunk) + 1) * self.chunk_size, len(content))
-                })
-                
+                self.metadata.append(chunk)
+            logger.info(f"Successfully processed {file_path}")
+                    
         except Exception as e:
-            print(f"Error processing file {file_path}: {e}")
+            logger.error(f"Error processing file {file_path}: {e}")
     
     def process_directory(self, directory: str):
         """Process all files in a directory."""
         try:
+            logger.info(f"Starting to process directory: {directory}")
+            files_processed = 0
+            files_skipped = 0
+            
             for root, _, files in os.walk(directory):
                 for file in files:
                     # Skip hidden files and certain directories
                     if file.startswith('.') or 'node_modules' in root or 'venv' in root:
+                        files_skipped += 1
                         continue
                     
-                    # Process only text files
-                    if file.endswith(('.py', '.js', '.jsx', '.ts', '.tsx', '.html', '.css', '.md', '.txt')):
+                    # Process only supported file types
+                    if os.path.splitext(file)[1] in self.smart_chunker.language_markers:
                         file_path = os.path.join(root, file)
                         self.process_file(file_path)
+                        files_processed += 1
+                    else:
+                        files_skipped += 1
+            
+            logger.info(f"Directory processing complete. Processed {files_processed} files, skipped {files_skipped} files.")
                         
         except Exception as e:
-            raise Exception(f"Failed to process directory: {e}") 
+            logger.error(f"Failed to process directory: {e}")
+            raise 

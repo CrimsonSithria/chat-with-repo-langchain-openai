@@ -39,12 +39,31 @@
   - [x] Usage Guide
   - [ ] Best practices
 
-## 7. Enhanced Code Understanding & Retrieval 🆕
-- [ ] Smart Chunking System
-  - [ ] Implement tree-sitter AST parsing
-  - [ ] Extract top-level functions/classes
-  - [ ] Preserve method relationships
-  - [ ] Track imports and dependencies
+## 7. Enhanced Code Understanding & Retrieval 🔄
+- [ ] Smart Code Chunking System (CintraAI-based)
+  - [ ] Core Chunking Components
+    - [ ] Implement CodeChunker class with configurable token limits
+    - [ ] Add support for multiple languages (Python, JavaScript, CSS initially)
+    - [ ] Integrate tree-sitter for robust code parsing
+    - [ ] Implement tiktoken for accurate token counting
+  
+  - [ ] Points of Interest Detection
+    - [ ] Function definitions and declarations
+    - [ ] Class declarations and methods
+    - [ ] Important comments and docstrings
+    - [ ] Module-level variables and imports
+    
+  - [ ] Intelligent Chunk Management
+    - [ ] Maintain context between related code segments
+    - [ ] Respect code structure boundaries
+    - [ ] Handle nested code blocks properly
+    - [ ] Preserve documentation context
+    
+  - [ ] Advanced Features
+    - [ ] Customizable chunking strategies
+    - [ ] Token limit optimization
+    - [ ] Chunk metadata tracking
+    - [ ] Cross-reference preservation
 
 - [ ] Advanced Metadata System
   - [ ] Track symbol references and imports
@@ -52,86 +71,140 @@
   - [ ] Map class hierarchies
   - [ ] Store code documentation
 
-- [ ] Graph-Based Index
-  - [ ] Implement code relationship graph
-  - [ ] Build symbol lookup table
-  - [ ] Add dependency tracking
-  - [ ] Create inheritance hierarchy
+## 8. Web Frontend Implementation 🆕
+- [ ] Core Web Application
+  - [ ] Set up FastAPI backend
+  - [ ] Create React frontend
+  - [ ] Implement WebSocket for real-time chat
+  - [ ] Design responsive UI layout
 
-## 8. Multi-Stage Retrieval Pipeline 🆕
-- [ ] Enhanced Search Implementation
-  - [ ] Vector similarity search (base layer)
-  - [ ] Graph traversal for related code
-  - [ ] Context-aware re-ranking
-  - [ ] Progressive context loading
+- [ ] Code Editor Integration
+  - [ ] Monaco Editor integration
+  - [ ] Syntax highlighting
+  - [ ] Code folding support
+  - [ ] Multi-file navigation
+  - [ ] Search and replace functionality
 
-- [ ] Query Enhancement
-  - [ ] Implement HyDE (Hypothetical Document Embeddings)
-  - [ ] Add code pattern extraction
-  - [ ] Support multi-file context
-  - [ ] Add semantic query expansion
+- [ ] Chat Interface
+  - [ ] Real-time chat with code context
+  - [ ] Code snippet highlighting
+  - [ ] Markdown support
+  - [ ] Code execution results display
+  - [ ] Error message formatting
 
-## 9. Performance Optimizations 🆕
-- [ ] Caching System
-  - [ ] Implement embedding cache
-  - [ ] Add graph traversal cache
-  - [ ] Cache frequent queries
+- [ ] Interactive Code Visualization 🎨
+  - [ ] Dependency Graph View
+    - [ ] D3.js force-directed graph
+    - [ ] Interactive node exploration
+    - [ ] Zoom and pan controls
+    - [ ] Module dependency highlighting
 
-- [ ] Index Optimizations
-  - [ ] Implement batch processing
-  - [ ] Add incremental updates
-  - [ ] Optimize memory usage
-  - [ ] Add index compression
+  - [ ] Class Hierarchy View
+    - [ ] Tree visualization
+    - [ ] Inheritance relationships
+    - [ ] Method overrides display
+    - [ ] Interactive class inspection
 
-## 10. Interactive Code Visualization 🎨
-- [ ] Dependency Wheel View
-  - [ ] Generate dependency matrix from codebase
-  - [ ] Implement d3.js wheel visualization
-  - [ ] Add interactive hovering and filtering
-  - [ ] Show import/export relationships
+  - [ ] Call Graph Visualization
+    - [ ] Function call relationships
+    - [ ] Stack trace visualization
+    - [ ] Click-to-navigate
+    - [ ] Highlight active paths
 
-- [ ] Code Graph Visualization
-  - [ ] Build force-directed graph layout
-  - [ ] Visualize function calls and relationships
-  - [ ] Add zoom and pan capabilities
-  - [ ] Implement search and highlight features
+  - [ ] Code Structure View
+    - [ ] File system tree
+    - [ ] Symbol browser
+    - [ ] Quick jump navigation
+    - [ ] Search and filter
 
-- [ ] Hierarchy View
-  - [ ] Create class/module hierarchy tree
-  - [ ] Show inheritance relationships
-  - [ ] Display nested component structure
-  - [ ] Add collapsible tree navigation
+## 9. Advanced Features 🚀
+- [ ] Code Analysis Tools
+  - [ ] Complexity metrics
+  - [ ] Code quality indicators
+  - [ ] Performance bottleneck detection
+  - [ ] Security vulnerability scanning
 
-- [ ] Interactive Features
-  - [ ] Click-to-navigate to code
-  - [ ] Real-time filtering options
-  - [ ] Custom color schemes for different relationships
-  - [ ] Export visualization as SVG/PNG
+- [ ] Collaboration Features
+  - [ ] Multi-user sessions
+  - [ ] Shared code viewing
+  - [ ] Real-time collaboration
+  - [ ] Chat history persistence
 
-## How to Run
+- [ ] Integration Support
+  - [ ] Git integration
+  - [ ] CI/CD pipeline info
+  - [ ] Issue tracker linking
+  - [ ] Documentation generation
 
-1. Setup:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Unix/macOS
-   pip install -r requirements.txt
-   ```
 
-2. Configure:
-   - Add your OpenAI API key to `.env` file
-   - Set any additional configuration options
+## Tech Stack
+- Backend:
+  - FastAPI
+  - WebSocket
+  - SQLAlchemy
+  - Redis (caching)
 
-3. Run Tests:
-   ```bash
-   python test_chat.py
-   ```
+- Frontend:
+  - React
+  - TypeScript
+  - Monaco Editor
+  - D3.js
+  - Material-UI
 
-4. Run Main Program:
-   ```bash
-   python run.py
-   # or
-   ./run.py
-   ```
+- Visualization:
+  - D3.js (graphs)
+  - Mermaid.js (diagrams)
+  - Monaco Editor (code)
+  - React Flow (node graphs)
+
+## Implementation Priority:
+1. Web Frontend Core (Highest)
+2. Code Editor Integration
+3. Basic Visualization
+4. Advanced Analysis Tools
+5. Collaboration Features
+6. Performance Optimization
+
+## Development Workflow:
+1. Set up development environment
+2. Implement core backend APIs
+3. Create basic frontend structure
+4. Add code editor integration
+5. Implement visualization features
+6. Add advanced features
+7. Optimize performance
+8. Deploy and monitor
+
+## API Structure:
+```typescript
+// Core endpoints
+POST /api/chat/message
+GET /api/code/file/{path}
+GET /api/code/search
+POST /api/code/analyze
+
+// Visualization endpoints
+GET /api/viz/dependency-graph
+GET /api/viz/class-hierarchy
+GET /api/viz/call-graph
+
+// Analysis endpoints
+GET /api/analysis/complexity
+GET /api/analysis/quality
+GET /api/analysis/security
+
+// Collaboration endpoints
+POST /api/collab/session/create
+POST /api/collab/session/join
+WS /api/collab/session/{id}
+```
+
+## Deployment:
+- Docker containerization
+- Nginx reverse proxy
+- Redis for caching
+- PostgreSQL for data storage
+- Monitoring with Prometheus/Grafana
 
 ## Available Commands
 - `help`: Show help message
@@ -143,8 +216,9 @@
 - Testing framework in place ✅
 - Basic CLI interface working ✅
 - Main program script ready ✅
-- Enhanced retrieval system in planning 🔄
-- Next: Implement smart chunking and graph-based indexing
+- Enhanced retrieval system complete ✅
+- Advanced metadata system complete ✅
+- Next: Implement web frontend and visualization
 
 ## Dependencies to Add:
 ```txt
@@ -157,12 +231,12 @@ graphviz
 ```
 
 ## Implementation Priority:
-1. Smart Chunking System (Highest impact)
-2. Advanced Metadata System
-3. Graph-Based Index
-4. Query Enhancement
-5. Performance Optimizations
-6. Code Visualization
+1. Web Frontend Core (Highest)
+2. Code Editor Integration
+3. Basic Visualization
+4. Advanced Analysis Tools
+5. Collaboration Features
+6. Performance Optimization
 
 ## Visualization Tools:
 - Primary: D3.js for interactive web visualizations

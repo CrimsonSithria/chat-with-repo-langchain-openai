@@ -84,8 +84,19 @@ class CodeChat:
                     {"role": "developer", "content": "You are a helpful code assistant. Answer questions about the code based on the context provided."},
                     {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}
                 ],
-                max_completion_tokens=self.max_response_tokens
+                max_completion_tokens=self.max_response_tokens,
+                reasoning_effort="high"
             )
+            
+            # Print token usage information
+            usage = response.usage
+            print("\nToken Usage:")
+            print(f"- Prompt tokens: {usage.prompt_tokens}")
+            print(f"- Completion tokens: {usage.completion_tokens}")
+            print(f"- Total tokens: {usage.total_tokens}")
+            if hasattr(usage, 'completion_tokens_details'):
+                print(f"- Reasoning tokens: {usage.completion_tokens_details.reasoning_tokens}")
+            
             return response.choices[0].message.content
         except Exception as e:
             return f"Error getting chat response: {e}"
@@ -100,12 +111,19 @@ class CodeChat:
                 print("No indices found.")
                 print("\nOptions:")
                 print("n. Create New Index")
+                print("r. Analyze Root Folder")
                 print("q. Quit")
                 
                 choice = input("\nSelect an option: ").strip().lower()
                 
                 if choice == 'q':
                     return 'quit'
+                elif choice == 'r':
+                    # Directly analyze root folder
+                    name = "root"
+                    if self.create_new_index(".", name):
+                        print(f"Successfully created index for root folder")
+                        return name
                 elif choice == 'n':
                     dir_path = input("Enter directory path to index: ").strip() or "."
                     name = input("Enter name for the new index: ").strip()
@@ -124,12 +142,19 @@ class CodeChat:
             
             print("\nOptions:")
             print("n. Create New Index")
+            print("r. Analyze Root Folder")
             print("q. Quit")
             
             choice = input("\nSelect an option: ").strip().lower()
             
             if choice == 'q':
                 return 'quit'
+            elif choice == 'r':
+                # Directly analyze root folder
+                name = "root"
+                if self.create_new_index(".", name):
+                    print(f"Successfully created index for root folder")
+                    return name
             elif choice == 'n':
                 dir_path = input("Enter directory path to index: ").strip() or "."
                 name = input("Enter name for the new index: ").strip()
