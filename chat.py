@@ -31,7 +31,15 @@ class CodeChat:
     def load_index(self, index_name: str) -> bool:
         """Load a specific index."""
         try:
-            self.ingester.load_state(index_name)
+            # Only create a new ingester if we don't have one or if it's for a different index
+            if not hasattr(self, 'current_index') or self.current_index != index_name:
+                print(f"Loading existing index: {index_name}")
+                self.ingester = CodeIngester()
+                # Load existing state without reprocessing
+                success = self.ingester.load_state(index_name, skip_embeddings=True)
+                if success:
+                    self.current_index = index_name
+                return success
             return True
         except Exception as e:
             print(f"Error loading index {index_name}: {e}")

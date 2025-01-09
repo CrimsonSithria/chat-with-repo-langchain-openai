@@ -34,7 +34,7 @@ class CodeIngester:
         self.dimension = 1536  # OpenAI embedding dimension
         self.index = faiss.IndexFlatL2(self.dimension)
         self.metadata: List[Dict] = []
-        self.indices_dir = "indices"
+        self.indices_dir = "backend/indices"
         self.current_index_name = None
         self.smart_chunker = SmartChunker(max_tokens=chunk_size)
             
